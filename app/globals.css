@@ -59,13 +59,15 @@ button:disabled, input:disabled, select:disabled { cursor: not-allowed; opacity:
 .status-unavailable { color: #77798a; background: #f0f1f5; }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.user-app-badges { display:flex; flex-wrap:wrap; gap:4px; min-width:130px; max-width:230px; }
-.user-app-badge { border-radius:5px; padding:3px 6px; font-size:9px; color:var(--ink); background:var(--subtle); border:1px solid var(--panel-border); }
+.user-app-badges { display:flex; align-items:center; gap:4px; min-width:0; max-width:190px; white-space:nowrap; }
+.user-app-badge { min-width:0; max-width:145px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-radius:5px; padding:3px 6px; font-size:9px; color:hsl(var(--app-hue) 48% 32%); background:hsl(var(--app-hue) 88% 95%); border:1px solid hsl(var(--app-hue) 55% 83%); }
+.user-app-count { flex-shrink:0; border-radius:5px; padding:3px 6px; font-size:9px; color:var(--muted-ink); background:var(--subtle); border:1px solid var(--panel-border); }
 .user-app-badge.app-revoked { opacity:.65; }
+.theme-dark .user-app-badge,.theme-dark .user-app-details li { color:hsl(var(--app-hue) 76% 82%); background:hsl(var(--app-hue) 32% 21%); border-color:hsl(var(--app-hue) 38% 38%); }
 .user-app-section { margin:20px 0; }
 .user-app-section h3 { font-size:13px; margin-bottom:10px; }
 .user-app-details { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
-.user-app-details li { padding:10px; border:1px solid var(--panel-border); border-radius:8px; }
+.user-app-details li { padding:10px; border:1px solid hsl(var(--app-hue) 55% 83%); border-radius:8px; color:hsl(var(--app-hue) 48% 32%); background:hsl(var(--app-hue) 88% 95%); }
 .user-app-details li>div { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; }
 .user-app-details p { margin:5px 0 0; color:var(--ink); opacity:.7; font-size:11px; }
 @media (min-width:1450px) { .page-content { padding-top:40px; }.metric-card { padding:17px 18px; }.growth-panel,.distribution-panel { padding:19px 21px 15px; }.chart-area { height:190px; } }
