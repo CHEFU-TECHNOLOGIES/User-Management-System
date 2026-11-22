@@ -1,208 +1,307 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { initialPeople } from "./people";
-import { UsersTable } from "./users-table";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Download, Search } from "lucide-react";
 import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  ListFilter,
-  Search,
-  SlidersHorizontal,
-} from "lucide-react";
+  adminApi,
+  errorMessage,
+  formatNumber,
+  isAccessError,
+  type ManagedUser,
+  type UserPage,
+} from "@/lib/admin-api";
+import { downloadCsv } from "@/lib/csv";
+import { UsersTable } from "./users-table";
+import { UserActionsDialog } from "./user-actions-dialog";
 
-export function UserDirectory({
-  notify,
-}: {
+type Props = {
+  currentUid: string;
+  revision: number;
+  moderation?: boolean;
+  onChanged: () => void;
+  onAccessError: (error: unknown) => void;
   notify: (message: string) => void;
-}) {
-  const [people, setPeople] = useState(initialPeople);
+};
+export function UserDirectory({
+  currentUid,
+  revision,
+  moderation,
+  onChanged,
+  onAccessError,
+  notify,
+}: Props) {
+  const [result, setResult] = useState<UserPage | null>(null);
   const [query, setQuery] = useState("");
+  const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All users");
+  const [role, setRole] = useState("All roles");
+  const [descending, setDescending] = useState(false);
+  const [cursors, setCursors] = useState<string[]>([""]);
+  const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
-  const filtered = useMemo(
-    () =>
-      people.filter(
-        (p) =>
-          `${p.name} ${p.email} ${p.role}`
-            .toLowerCase()
-            .includes(query.toLowerCase()) &&
-          (status === "All users" || p.status === status),
-      ),
-    [people, query, status],
-  );
-  const csv = () => {
-    const rows = [
-      ["Name", "Email", "Role", "Status", "Joined"],
-      ...filtered.map((p) => [p.name, p.email, p.role, p.status, p.joined]),
-    ];
-    const blob = new Blob(
-      [rows.map((row) => row.map((c) => `"${c}"`).join(",")).join("\n")],
-      { type: "text/csv" },
-    );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "users.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-    notify("Your user export is ready");
-  };
+  const [actionUser, setActionUser] = useState<ManagedUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
+  const cursor = cursors[page] || "";
 
-  const toggleUser = (name: string) =>
-    setSelected((current) =>
-      current.includes(name)
-        ? current.filter((s) => s !== name)
-        : [...current, name],
-    );
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(query.trim());
+      setPage(0);
+      setCursors([""]);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    setResult(null);
+    setSelected([]);
+    const params = new URLSearchParams({ limit: "25", search, cursor });
+    void adminApi<UserPage>(`/users?${params}`, { signal: controller.signal })
+      .then((data) => {
+        if (!controller.signal.aborted) setResult(data);
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        onAccessError(error);
+        setError(errorMessage(error));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [search, cursor, revision, retry, onAccessError]);
+
+  const people = useMemo(
+    () =>
+      (result?.users || [])
+        .filter(
+          (person) =>
+            (status === "All users" || person.status === status) &&
+            (role === "All roles" || person.roles.includes(role)),
+        )
+        .sort((a, b) => (descending ? -1 : 1) * a.name.localeCompare(b.name)),
+    [result, status, role, descending],
+  );
+  const selectable = people
+    .filter((user) => user.uid && user.uid !== currentUid)
+    .map((user) => user.uid!);
+  const waiting = busy || loading || query.trim() !== search;
   const toggleAll = () =>
     setSelected(
-      selected.length === filtered.length ? [] : filtered.map((p) => p.name),
+      selectable.every((uid) => selected.includes(uid)) ? [] : selectable,
+    );
+  const toggleUser = (uid: string) =>
+    setSelected((current) =>
+      current.includes(uid)
+        ? current.filter((value) => value !== uid)
+        : [...current, uid],
     );
 
+  async function updateSelected(disabled: boolean) {
+    setBusy(true);
+    setError("");
+    let completed = 0;
+    const failures: string[] = [];
+    for (const uid of selected) {
+      try {
+        await adminApi(`/users/${encodeURIComponent(uid)}`, {
+          method: "PATCH",
+          body: JSON.stringify({ disabled }),
+        });
+        completed++;
+      } catch (error) {
+        failures.push(errorMessage(error));
+        if (isAccessError(error)) {
+          onAccessError(error);
+          break;
+        }
+      }
+    }
+    setSelected([]);
+    setBusy(false);
+    if (failures.length)
+      setError(
+        `${completed} account(s) updated. ${failures.length} failed: ${failures[0]}`,
+      );
+    notify(
+      failures.length
+        ? `${completed} updated. ${failures.length} failed: ${failures[0]}`
+        : `${completed} account(s) ${disabled ? "suspended" : "enabled"}.`,
+    );
+    onChanged();
+  }
+
   return (
-    <section className="panel directory-card">
+    <section className="panel directory-card" aria-busy={waiting}>
       <div className="directory-heading">
         <div>
           <div className="title-with-badge">
-            <h2>Recent users</h2>
-            <span className="total-badge">2,420</span>
+            <h2>{moderation ? "Account moderation" : "CheFu accounts"}</h2>
+            {result && (
+              <span className="total-badge">{formatNumber(result.total)}</span>
+            )}
           </div>
-          <p>A list of users who recently joined your workspace.</p>
+          <p>
+            Email search covers all profiles. Status, role, and name sorting
+            apply to this page.
+          </p>
         </div>
-        <button className="button button-secondary export-button" onClick={csv}>
+        <button
+          className="button button-secondary export-button"
+          disabled={waiting || !people.length}
+          onClick={() => {
+            downloadCsv([
+              ["Name", "Email", "Roles", "Status", "Joined"],
+              ...people.map((person) => [
+                person.name,
+                person.email,
+                person.roles.join(", "),
+                person.status,
+                person.createdAt || "",
+              ]),
+            ]);
+            notify("Current page exported.");
+          }}
+        >
           <Download size={15} />
-          Export
+          Export page
         </button>
       </div>
       <div className="table-toolbar">
         <label className="table-search">
           <Search size={16} />
           <input
-            aria-label="Search users"
-            placeholder="Search users..."
+            aria-label="Search users by email prefix"
+            placeholder="Search by email…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            disabled={busy}
+            onChange={(event) => setQuery(event.target.value)}
           />
-          <kbd>⌘ K</kbd>
         </label>
         <div className="toolbar-right">
-          <label className="filter-select">
-            <ListFilter size={15} />
-            <select
-              aria-label="Filter by status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option>All users</option>
-              <option>Active</option>
-              <option>Pending</option>
-              <option>Suspended</option>
-            </select>
-            <ChevronDown size={14} />
-          </label>
-          <button
-            className="button button-secondary filter-button"
-            onClick={() => notify("All filters are up to date")}
+          <select
+            className="select-button"
+            aria-label="Filter status on this page"
+            value={status}
+            disabled={busy}
+            onChange={(event) => {
+              setStatus(event.target.value);
+              setSelected([]);
+            }}
           >
-            <SlidersHorizontal size={15} />
-            <span>Filters</span>
-          </button>
+            {["All users", "Active", "Pending", "Suspended", "Unavailable"].map(
+              (value) => (
+                <option key={value}>{value}</option>
+              ),
+            )}
+          </select>
+          <select
+            className="select-button"
+            aria-label="Filter role on this page"
+            value={role}
+            disabled={busy}
+            onChange={(event) => {
+              setRole(event.target.value);
+              setSelected([]);
+            }}
+          >
+            {["All roles", "admin", "user", "moderator", "support"].map(
+              (value) => (
+                <option key={value}>{value}</option>
+              ),
+            )}
+          </select>
         </div>
       </div>
-      {selected.length > 0 && (
-        <div className="bulk-bar">
-          <span>{selected.length} users selected</span>
+      {error && (
+        <div className="inline-error" role="alert">
+          {error}{" "}
           <button
-            onClick={() => {
-              setPeople((current) =>
-                current.map((p) =>
-                  selected.includes(p.name) ? { ...p, status: "Active" } : p,
-                ),
-              );
-              setSelected([]);
-              notify("Selected users activated");
-            }}
+            onClick={() => setRetry((value) => value + 1)}
+            disabled={waiting}
           >
-            Activate
+            Retry
           </button>
-          <button
-            onClick={() => {
-              setPeople((current) =>
-                current.map((p) =>
-                  selected.includes(p.name)
-                    ? {
-                        ...p,
-                        status: "Suspended",
-                      }
-                    : p,
-                ),
-              );
-              setSelected([]);
-              notify("Selected users suspended");
-            }}
-          >
-            Suspend
-          </button>
-          <button onClick={() => setSelected([])}>Clear selection</button>
         </div>
       )}
-      <UsersTable
-        people={filtered}
-        selected={selected}
-        onToggleUser={toggleUser}
-        onToggleAll={toggleAll}
-        onSort={() => setPeople((current) => [...current].reverse())}
-        notify={notify}
-      />
+      {selected.length > 0 && (
+        <div className="bulk-bar">
+          <span>{selected.length} selected</span>
+          <button disabled={waiting} onClick={() => void updateSelected(false)}>
+            Enable accounts
+          </button>
+          <button disabled={waiting} onClick={() => void updateSelected(true)}>
+            Suspend accounts
+          </button>
+          <button disabled={waiting} onClick={() => setSelected([])}>
+            Clear selection
+          </button>
+        </div>
+      )}
+      {loading ? (
+        <p className="empty-state" role="status">
+          Loading CheFu accounts…
+        </p>
+      ) : !error || result ? (
+        <UsersTable
+          people={people}
+          selected={selected}
+          busy={waiting}
+          currentUid={currentUid}
+          onToggleUser={toggleUser}
+          onToggleAll={toggleAll}
+          onSort={() => setDescending((value) => !value)}
+          onAction={setActionUser}
+        />
+      ) : null}
       <div className="table-footer">
         <span>
-          Showing{" "}
-          <b>
-            {filtered.length ? 1 : 0}–{filtered.length}
-          </b>{" "}
-          of <b>{filtered.length}</b> users
+          Page {page + 1} · {people.length} shown ·{" "}
+          {result ? formatNumber(result.total) : "—"} matching profiles
         </span>
         <div className="pagination">
           <button
             className="page-button"
-            aria-label="Previous page"
-            onClick={() => notify("You’re on the first page")}
+            disabled={waiting || page === 0}
+            onClick={() => setPage((value) => value - 1)}
           >
             <ChevronLeft size={15} />
-            <span>Previous</span>
-          </button>
-          <button className="page-number active-page">1</button>
-          <button
-            className="page-number"
-            onClick={() => notify("Page 2 is ready")}
-          >
-            2
-          </button>
-          <button
-            className="page-number"
-            onClick={() => notify("Page 3 is ready")}
-          >
-            3
-          </button>
-          <span className="page-ellipsis">...</span>
-          <button
-            className="page-number"
-            onClick={() => notify("Last page is ready")}
-          >
-            12
+            Previous
           </button>
           <button
             className="page-button"
-            onClick={() => notify("Next page is ready")}
+            disabled={waiting || !result?.nextCursor}
+            onClick={() => {
+              if (result?.nextCursor) {
+                setCursors((current) => [
+                  ...current.slice(0, page + 1),
+                  result.nextCursor!,
+                ]);
+                setPage((value) => value + 1);
+              }
+            }}
           >
-            <span>Next</span>
+            Next
             <ChevronRight size={15} />
           </button>
         </div>
       </div>
+      {actionUser && (
+        <UserActionsDialog
+          user={actionUser}
+          currentUid={currentUid}
+          onClose={() => setActionUser(null)}
+          onChanged={onChanged}
+          onAccessError={onAccessError}
+          notify={notify}
+        />
+      )}
     </section>
   );
 }

@@ -1,22 +1,21 @@
 "use client";
 
-import { Bell, ChevronRight, Menu, Moon, Sun } from "lucide-react";
-
-type DashboardHeaderProps = {
-  active: string;
-  dark: boolean;
-  onOpenNavigation: () => void;
-  onToggleTheme: () => void;
-  onNotifications: () => void;
-};
+import { ChevronRight, Menu, Moon, Sun } from "lucide-react";
+import { accountUrl, initials, type AdminAccount } from "@/lib/admin-api";
 
 export function DashboardHeader({
   active,
   dark,
+  account,
   onOpenNavigation,
   onToggleTheme,
-  onNotifications,
-}: DashboardHeaderProps) {
+}: {
+  active: string;
+  dark: boolean;
+  account: AdminAccount;
+  onOpenNavigation: () => void;
+  onToggleTheme: () => void;
+}) {
   return (
     <header className="topbar">
       <button
@@ -27,7 +26,7 @@ export function DashboardHeader({
         <Menu size={20} />
       </button>
       <div className="breadcrumbs">
-        <span>Workspace</span>
+        <span>CheFu</span>
         <ChevronRight size={14} />
         <b>{active}</b>
       </div>
@@ -40,14 +39,12 @@ export function DashboardHeader({
           {dark ? <Sun size={17} /> : <Moon size={17} />}
         </button>
         <button
-          className="icon-button"
-          aria-label="Notifications"
-          onClick={onNotifications}
+          className="avatar avatar-you top-avatar"
+          aria-label="Manage your CheFu account"
+          onClick={() => window.location.assign(accountUrl("/account"))}
         >
-          <Bell size={17} />
-          <i className="notification-dot" />
+          {initials(account.name)}
         </button>
-        <div className="avatar avatar-you top-avatar">JD</div>
       </div>
     </header>
   );

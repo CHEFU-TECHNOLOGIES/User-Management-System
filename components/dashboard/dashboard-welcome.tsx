@@ -1,65 +1,74 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, Command, Sparkles, X } from "lucide-react";
-
-type DashboardWelcomeProps = {
-  active: string;
-  notify: (message: string) => void;
-  onViewUsers: () => void;
-};
+import { ArrowRight, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { formatNumber, type AdminAccount, type Summary } from "@/lib/admin-api";
 
 export function DashboardWelcome({
   active,
-  notify,
+  account,
+  summary,
+  loading,
+  onRefresh,
   onViewUsers,
-}: DashboardWelcomeProps) {
-  const [showNotice, setShowNotice] = useState(true);
-
+}: {
+  active: string;
+  account: AdminAccount;
+  summary: Summary | null;
+  loading: boolean;
+  onRefresh: () => void;
+  onViewUsers: () => void;
+}) {
+  const [today, setToday] = useState("");
+  useEffect(
+    () =>
+      setToday(
+        new Date().toLocaleDateString("en-ZA", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        }),
+      ),
+    [],
+  );
   return (
     <>
       <div className="welcome-row">
         <div>
           <div className="eyebrow">
             <span className="eyebrow-line" />
-            MONDAY, JANUARY 20, 2025
+            {today}
           </div>
-          <h1>{active === "Overview" ? "Good morning, Jordan" : active}</h1>
-          <p className="page-subtitle">
+          <h1>
             {active === "Overview"
-              ? "Here's what's happening with your workspace today."
-              : `Manage and monitor ${active.toLowerCase()} across your workspace.`}
+              ? `Welcome, ${account.name.split(" ")[0]}`
+              : active}
+          </h1>
+          <p className="page-subtitle">
+            Manage CheFu accounts and administrator access.
           </p>
         </div>
         <div className="welcome-actions">
           <button
             className="button button-secondary"
-            onClick={() => notify("Dashboard link copied to clipboard")}
+            onClick={onRefresh}
+            disabled={loading}
           >
-            <Command size={15} />
-            Share dashboard
+            <RefreshCw size={15} className={loading ? "spin" : ""} />
+            {loading ? "Refreshing…" : "Refresh"}
           </button>
         </div>
       </div>
-      {showNotice && (
+      {active === "Overview" && summary && (
         <div className="notice-strip">
-          <div className="notice-icon">
-            <Sparkles size={15} />
-          </div>
           <p>
-            <b>Your workspace is looking good.</b> You&apos;ve invited 12 new
-            users this month.{" "}
+            <b>{formatNumber(summary.newUsers)} new accounts</b> joined during
+            the last 30 days.{" "}
             <button onClick={onViewUsers}>
               View users <ArrowRight size={13} />
             </button>
           </p>
-          <button
-            className="notice-close"
-            aria-label="Dismiss message"
-            onClick={() => setShowNotice(false)}
-          >
-            <X size={15} />
-          </button>
         </div>
       )}
     </>

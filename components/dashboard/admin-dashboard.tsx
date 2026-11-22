@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
+import { accountUrl } from "@/lib/admin-api";
 import { DashboardSidebar } from "./dashboard-sidebar";
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardWelcome } from "./dashboard-welcome";
@@ -8,84 +10,227 @@ import { DashboardMetrics } from "./dashboard-metrics";
 import { UserGrowthChart } from "./user-growth-chart";
 import { RoleDistribution } from "./role-distribution";
 import { UserDirectory } from "./user-directory";
-import { Check, X } from "lucide-react";
+import { AuditLog } from "./audit-log";
+import { useDashboard } from "./use-dashboard";
 
 export function AdminDashboard() {
-  const [active, setActive] = useState("Overview");
-  const [dark, setDark] = useState(false);
-  const [notice, setNotice] = useState("");
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const notify = (message: string) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(""), 2800);
-  };
+    const dashboard = useDashboard();
+    const { account, summary, access, error, loading, reload, handleAccess } =
+        dashboard;
+    const [active, setActive] = useState("Overview");
+    const [dark, setDark] = useState(false);
+    const [notice, setNotice] = useState("");
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const noticeTimer = useRef<number | undefined>(undefined);
+    useEffect(() => {
+        setDark(localStorage.getItem("chefu-admin-theme") === "dark");
+    }, []);
+    useEffect(() => () => window.clearTimeout(noticeTimer.current), []);
+    const toggleTheme = () =>
+        setDark((current) => {
+            localStorage.setItem(
+                "chefu-admin-theme",
+                current ? "light" : "dark",
+            );
+            return !current;
+        });
+    const notify = (message: string) => {
+        window.clearTimeout(noticeTimer.current);
+        setNotice(message);
+        noticeTimer.current = window.setTimeout(() => setNotice(""), 4000);
+    };
 
-  return (
-    <div className={`app-shell ${dark ? "theme-dark" : ""}`}>
-      <DashboardSidebar
-        active={active}
-        mobileOpen={mobileOpen}
-        onNavigate={(name) => {
-          setActive(name);
-          setMobileOpen(false);
-        }}
-        notify={notify}
-      />
-      {mobileOpen && (
-        <button
-          className="mobile-scrim"
-          onClick={() => setMobileOpen(false)}
-          aria-label="Close navigation"
-        />
-      )}
-      <main className="main-area">
-        <DashboardHeader
-          active={active}
-          dark={dark}
-          onOpenNavigation={() => setMobileOpen(true)}
-          onToggleTheme={() => setDark(!dark)}
-          onNotifications={() => {
-            setActive("Notifications");
-            notify("You’re all caught up");
-          }}
-        />
-        <div className="page-content">
-          <DashboardWelcome
-            active={active}
-            notify={notify}
-            onViewUsers={() => {
-              setActive("Users");
-              document
-                .querySelector(".directory-card")
-                ?.scrollIntoView({ behavior: "smooth" });
-            }}
-          />
-          <DashboardMetrics />
-          <section className="analytics-grid">
-            <UserGrowthChart />
-            <RoleDistribution notify={notify} />
-          </section>
-          <UserDirectory notify={notify} />
-          <footer className="page-footer">
-            <span>© {new Date().getFullYear()} Chefu Technologies</span>
-            <a href="mailto:support@layers.com">Privacy · Terms · Help</a>
-          </footer>
+    if (!account || access)
+        return (
+            <main className="access-screen">
+                <section className="panel access-panel">
+                    <h1>CT User Management</h1>
+                    {loading ? (
+                        <p role="status">
+                            Checking your CheFu administrator session…
+                        </p>
+                    ) : (
+                        <>
+                            <p role={error ? "alert" : undefined}>
+                                {access === 401
+                                    ? "Sign in with your CheFu administrator account to continue."
+                                    : access === 403
+                                      ? "This account does not have administrator access."
+                                      : error ||
+                                        "Sign in to manage CheFu accounts."}
+                            </p>
+                            <div className="dialog-actions">
+                                <button
+                                    className="button button-primary"
+                                    onClick={() =>
+                                        window.location.assign(
+                                            accountUrl("/login"),
+                                        )
+                                    }
+                                >
+                                    {access === 403
+                                        ? "Choose another account"
+                                        : "Sign in"}
+                                </button>
+                                <button
+                                    className="button button-secondary"
+                                    onClick={reload}
+                                >
+                                    Retry connection
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </section>
+            </main>
+        );
+
+    const showAnalytics = active === "Overview" || active === "Analytics";
+    const showUsers = [
+        "Overview",
+        "Users",
+        "Roles & permissions",
+        "Moderation",
+    ].includes(active);
+    return (
+        <div className={`app-shell ${dark ? "theme-dark" : ""}`}>
+            <DashboardSidebar
+                active={active}
+                account={account}
+                mobileOpen={mobileOpen}
+                onNavigate={(name) => {
+                    setActive(name);
+                    setMobileOpen(false);
+                }}
+            />
+            {mobileOpen && (
+                <button
+                    className="mobile-scrim"
+                    onClick={() => setMobileOpen(false)}
+                    aria-label="Close navigation"
+                />
+            )}
+            <main className="main-area">
+                <DashboardHeader
+                    active={active}
+                    account={account}
+                    dark={dark}
+                    onOpenNavigation={() => setMobileOpen(true)}
+                    onToggleTheme={toggleTheme}
+                />
+                <div className="page-content">
+                    <DashboardWelcome
+                        active={active}
+                        account={account}
+                        summary={summary}
+                        loading={loading}
+                        onRefresh={reload}
+                        onViewUsers={() => {
+                            setActive("Users");
+                        }}
+                    />
+                    {error && (
+                        <div className="inline-error" role="alert">
+                            {error}{" "}
+                            <button onClick={reload} disabled={loading}>
+                                Retry
+                            </button>
+                        </div>
+                    )}
+                    {showAnalytics && (
+                        <>
+                            <DashboardMetrics summary={summary} />
+                            <section className="analytics-grid">
+                                <UserGrowthChart
+                                    summary={summary}
+                                    days={dashboard.days}
+                                    onRangeChange={dashboard.setDays}
+                                />
+                                <RoleDistribution summary={summary} />
+                            </section>
+                        </>
+                    )}
+                    {active === "Roles & permissions" && (
+                        <div className="notice-strip">
+                            <p>
+                                Open an account’s action menu to change its
+                                role. Administrator accounts can manage all
+                                central CheFu users.
+                            </p>
+                        </div>
+                    )}
+                    {showUsers && (
+                        <UserDirectory
+                            currentUid={account.uid}
+                            revision={dashboard.revision}
+                            moderation={active === "Moderation"}
+                            onChanged={reload}
+                            onAccessError={handleAccess}
+                            notify={notify}
+                        />
+                    )}
+                    {active === "Audit logs" && (
+                        <AuditLog
+                            revision={dashboard.revision}
+                            onAccessError={handleAccess}
+                        />
+                    )}
+                    {active === "Settings" && (
+                        <section className="panel settings-panel">
+                            <h2>Your account</h2>
+                            <p>
+                                {account.name} · {account.email}
+                            </p>
+                            <p>
+                                Manage your profile, password, sessions, and
+                                multi-factor authentication in CheFu Account.
+                            </p>
+                            <div className="dialog-actions">
+                                <button
+                                    className="button button-primary"
+                                    onClick={() =>
+                                        window.location.assign(
+                                            accountUrl("/account"),
+                                        )
+                                    }
+                                >
+                                    Open CheFu Account
+                                </button>
+                                <button
+                                    className="button button-secondary"
+                                    onClick={toggleTheme}
+                                >
+                                    Use {dark ? "light" : "dark"} theme
+                                </button>
+                            </div>
+                        </section>
+                    )}
+                    <footer className="page-footer">
+                        <span>
+                            © {new Date().getFullYear()} Chefu Technologies
+                        </span>
+                        {summary && (
+                            <span>
+                                Updated{" "}
+                                {new Date(
+                                    summary.generatedAt,
+                                ).toLocaleTimeString("en-ZA")}
+                            </span>
+                        )}
+                    </footer>
+                </div>
+                {notice && (
+                    <div className="toast" role="status">
+                        {notice}
+                        <button
+                            aria-label="Dismiss notification"
+                            onClick={() => setNotice("")}
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                )}
+            </main>
         </div>
-        {notice && (
-          <div className="toast" role="status">
-            <span className="toast-check">
-              <Check size={14} />
-            </span>
-            {notice}
-            <button
-              aria-label="Dismiss notification"
-              onClick={() => setNotice("")}
-            >
-              <X size={14} />
-            </button>
-          </div>
-        )}
-      </main>
-    </div>
-  );
+    );
 }

@@ -1,25 +1,31 @@
 "use client";
 
-import type { Person } from "./people";
 import { Check, ChevronsUpDown, MoreHorizontal } from "lucide-react";
+import { formatDate, initials, type ManagedUser } from "@/lib/admin-api";
 
 type UsersTableProps = {
-  people: Person[];
+  people: ManagedUser[];
   selected: string[];
-  onToggleUser: (name: string) => void;
+  busy: boolean;
+  currentUid: string;
+  onToggleUser: (uid: string) => void;
   onToggleAll: () => void;
   onSort: () => void;
-  notify: (message: string) => void;
+  onAction: (user: ManagedUser) => void;
 };
-
 export function UsersTable({
-  people: filtered,
+  people,
   selected,
-  onToggleUser: toggleUser,
-  onToggleAll: toggleAll,
+  busy,
+  currentUid,
+  onToggleUser,
+  onToggleAll,
   onSort,
-  notify,
+  onAction,
 }: UsersTableProps) {
+  const selectable = people.filter(
+    (user) => user.uid && user.uid !== currentUid,
+  );
   return (
     <div className="table-scroll">
       <table className="users-table">
@@ -27,12 +33,14 @@ export function UsersTable({
           <tr>
             <th className="check-col">
               <input
-                aria-label="Select all users"
+                aria-label="Select all users on this page"
                 type="checkbox"
+                disabled={busy || !selectable.length}
                 checked={
-                  filtered.length > 0 && selected.length === filtered.length
+                  selectable.length > 0 &&
+                  selectable.every((user) => selected.includes(user.uid!))
                 }
-                onChange={toggleAll}
+                onChange={onToggleAll}
               />
             </th>
             <th>
@@ -40,32 +48,31 @@ export function UsersTable({
                 Name <ChevronsUpDown size={13} />
               </button>
             </th>
-            <th>Role</th>
+            <th>Roles</th>
             <th>Status</th>
             <th>Verification</th>
-            <th>
-              Joined <ChevronsUpDown size={13} />
-            </th>
+            <th>Joined</th>
             <th className="row-action-col">
               <span className="sr-only">Actions</span>
             </th>
           </tr>
         </thead>
         <tbody>
-          {filtered.map((person) => (
+          {people.map((person) => (
             <tr key={person.email}>
               <td className="check-col">
                 <input
                   aria-label={`Select ${person.name}`}
                   type="checkbox"
-                  checked={selected.includes(person.name)}
-                  onChange={() => toggleUser(person.name)}
+                  disabled={busy || !person.uid || person.uid === currentUid}
+                  checked={!!person.uid && selected.includes(person.uid)}
+                  onChange={() => person.uid && onToggleUser(person.uid)}
                 />
               </td>
               <td>
                 <div className="person-cell">
-                  <div className={`avatar avatar-${person.color}`}>
-                    {person.initials}
+                  <div className="avatar avatar-lavender">
+                    {initials(person.name)}
                   </div>
                   <div className="person-copy">
                     <b>{person.name}</b>
@@ -74,10 +81,17 @@ export function UsersTable({
                 </div>
               </td>
               <td>
-                <span className="role-label">{person.role}</span>
+                <span className="role-label">
+                  {person.roles.join(", ") || "user"}
+                </span>
               </td>
               <td>
-                <StatusPill status={person.status} />
+                <span
+                  className={`status-pill status-${person.status.toLowerCase()}`}
+                >
+                  <i />
+                  {person.status}
+                </span>
               </td>
               <td>
                 {person.verified ? (
@@ -92,36 +106,28 @@ export function UsersTable({
                   </span>
                 )}
               </td>
-              <td className="date-cell">{person.joined}</td>
+              <td className="date-cell">{formatDate(person.createdAt)}</td>
               <td>
                 <button
                   className="row-menu"
-                  aria-label={`Actions for ${person.name}`}
-                  onClick={() => notify(`Actions for ${person.name}`)}
+                  disabled={busy || !person.uid}
+                  aria-label={`Manage ${person.name}`}
+                  onClick={() => onAction(person)}
                 >
                   <MoreHorizontal size={17} />
                 </button>
               </td>
             </tr>
           ))}
-          {filtered.length === 0 && (
+          {people.length === 0 && (
             <tr>
               <td colSpan={7} className="empty-state">
-                No users match your search.
+                No users match this view.
               </td>
             </tr>
           )}
         </tbody>
       </table>
     </div>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  return (
-    <span className={`status-pill status-${status.toLowerCase()}`}>
-      <i />
-      {status}
-    </span>
   );
 }

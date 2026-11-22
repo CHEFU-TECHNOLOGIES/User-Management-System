@@ -1,97 +1,49 @@
-import type { ReactNode } from "react";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  MoreHorizontal,
-  ShieldCheck,
-  UserCheck,
-  UserPlus,
-  Users,
-} from "lucide-react";
+import { ShieldCheck, UserCheck, UserPlus, Users } from "lucide-react";
+import { formatNumber, type Summary } from "@/lib/admin-api";
 
-export function DashboardMetrics() {
+export function DashboardMetrics({ summary }: { summary: Summary | null }) {
+  const metrics = [
+    {
+      icon: Users,
+      label: "Total accounts",
+      value: summary?.total,
+      note: "Central CheFu account profiles",
+    },
+    {
+      icon: UserCheck,
+      label: "Recently active",
+      value: summary?.active,
+      note: "Signed in during the last 30 days",
+    },
+    {
+      icon: UserPlus,
+      label: "New accounts",
+      value: summary?.newUsers,
+      note: "Created during the last 30 days",
+    },
+    {
+      icon: ShieldCheck,
+      label: "Administrators",
+      value: summary?.admins,
+      note: "Accounts with the admin role",
+    },
+  ];
   return (
     <section className="metrics-grid" aria-label="User statistics">
-      <Metric
-        icon={<Users size={17} />}
-        label="Total users"
-        value="2,420"
-        change="20.1%"
-        direction="up"
-        note="vs. last month"
-      />
-      <Metric
-        icon={<UserCheck size={17} />}
-        label="Active users"
-        value="1,845"
-        change="12.8%"
-        direction="up"
-        note="vs. last month"
-      />
-      <Metric
-        icon={<UserPlus size={17} />}
-        label="New this month"
-        value="128"
-        change="8.2%"
-        direction="up"
-        note="vs. last month"
-      />
-      <Metric
-        icon={<ShieldCheck size={17} />}
-        label="Needs attention"
-        value="12"
-        change="2.4%"
-        direction="down"
-        note="pending verification"
-        alert
-      />
+      {metrics.map(({ icon: Icon, label, value, note }) => (
+        <article className="metric-card" key={label}>
+          <div className="metric-top">
+            <span className="metric-icon">
+              <Icon size={17} />
+            </span>
+          </div>
+          <p className="metric-label">{label}</p>
+          <div className="metric-bottom">
+            <strong>{value === undefined ? "—" : formatNumber(value)}</strong>
+          </div>
+          <p className="metric-note">{note}</p>
+        </article>
+      ))}
     </section>
-  );
-}
-
-function Metric({
-  icon,
-  label,
-  value,
-  change,
-  direction,
-  note,
-  alert = false,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  change: string;
-  direction: "up" | "down";
-  note: string;
-  alert?: boolean;
-}) {
-  return (
-    <article className="metric-card">
-      <div className="metric-top">
-        <span className="metric-icon">{icon}</span>
-        <button
-          className="icon-button metric-more"
-          aria-label={`${label} options`}
-        >
-          <MoreHorizontal size={17} />
-        </button>
-      </div>
-      <p className="metric-label">{label}</p>
-      <div className="metric-bottom">
-        <strong>{value}</strong>
-        <span
-          className={`metric-change ${alert ? "change-warn" : direction === "up" ? "change-up" : "change-down"}`}
-        >
-          {direction === "up" ? (
-            <ArrowUpRight size={13} />
-          ) : (
-            <ArrowDownRight size={13} />
-          )}{" "}
-          {change}
-        </span>
-      </div>
-      <p className="metric-note">{note}</p>
-    </article>
   );
 }
