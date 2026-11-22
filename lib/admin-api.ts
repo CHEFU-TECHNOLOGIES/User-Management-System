@@ -7,6 +7,7 @@ export type AdminAccount = {
   uid: string;
   email: string;
   name: string;
+  photoURL: string | null;
   roles: string[];
 };
 export type ManagedUser = {
@@ -35,7 +36,7 @@ export type ManagedUser = {
 export type UserPage = {
   users: ManagedUser[];
   nextCursor: string | null;
-  total: number;
+  total: number | null;
 };
 export type Summary = {
   total: number;
@@ -81,7 +82,7 @@ function cachePath(path: string) {
     );
   url.searchParams.sort();
   // Fetch the updated profile response once instead of reusing older pages.
-  return `${url.pathname === "/users" ? "v4:" : ""}${url.pathname}${url.search}`;
+  return `${url.pathname === "/users" ? "v5:" : ""}${url.pathname}${url.search}`;
 }
 
 subscribeCacheEvents((event) => {

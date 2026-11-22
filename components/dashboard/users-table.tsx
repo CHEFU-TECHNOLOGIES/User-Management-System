@@ -10,9 +10,11 @@ type UsersTableProps = {
   selected: string[];
   busy: boolean;
   currentUid: string;
+  sortBy: "name" | "createdAt";
+  descending: boolean;
   onToggleUser: (uid: string) => void;
   onToggleAll: () => void;
-  onSort: () => void;
+  onSort: (field: "name" | "createdAt") => void;
   onAction: (user: ManagedUser) => void;
 };
 export function UsersTable({
@@ -20,6 +22,8 @@ export function UsersTable({
   selected,
   busy,
   currentUid,
+  sortBy,
+  descending,
   onToggleUser,
   onToggleAll,
   onSort,
@@ -45,8 +49,16 @@ export function UsersTable({
                 onChange={onToggleAll}
               />
             </th>
-            <th>
-              <button onClick={onSort}>
+            <th
+              aria-sort={
+                sortBy === "name"
+                  ? descending
+                    ? "descending"
+                    : "ascending"
+                  : "none"
+              }
+            >
+              <button onClick={() => onSort("name")}>
                 Name <ChevronsUpDown size={13} />
               </button>
             </th>
@@ -56,7 +68,19 @@ export function UsersTable({
             <th>Gender</th>
             <th>Status</th>
             <th>Verification</th>
-            <th>Joined</th>
+            <th
+              aria-sort={
+                sortBy === "createdAt"
+                  ? descending
+                    ? "descending"
+                    : "ascending"
+                  : "none"
+              }
+            >
+              <button onClick={() => onSort("createdAt")}>
+                Joined <ChevronsUpDown size={13} />
+              </button>
+            </th>
             <th className="row-action-col">
               <span className="sr-only">Actions</span>
             </th>

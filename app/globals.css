@@ -6,8 +6,17 @@
 
 :root { color-scheme: light; --background:#f8f9fc; --foreground:#1d2030; --card:#fff; --card-foreground:#1d2030; --popover:#fff; --popover-foreground:#1d2030; --primary:#6555df; --primary-foreground:#fff; --secondary:#fff; --secondary-foreground:#45485a; --muted:#f3f4f8; --muted-foreground:#84889a; --accent:#f3f2ff; --accent-foreground:#5b4bd6; --destructive:#d94e62; --border:#e9eaf0; --input:#e9eaf0; --ring:#8679ef; --radius:.75rem; --sidebar:#fff; --sidebar-foreground:#4b4e60; --sidebar-border:#ececf1; }
 @theme inline { --color-background:var(--background); --color-foreground:var(--foreground); --color-card:var(--card); --color-card-foreground:var(--card-foreground); --color-popover:var(--popover); --color-popover-foreground:var(--popover-foreground); --color-primary:var(--primary); --color-primary-foreground:var(--primary-foreground); --color-secondary:var(--secondary); --color-secondary-foreground:var(--secondary-foreground); --color-muted:var(--muted); --color-muted-foreground:var(--muted-foreground); --color-accent:var(--accent); --color-accent-foreground:var(--accent-foreground); --color-destructive:var(--destructive); --color-border:var(--border); --color-input:var(--input); --color-ring:var(--ring); --radius-sm:calc(var(--radius)*.6); --radius-md:calc(var(--radius)*.8); --radius-lg:var(--radius); --radius-xl:calc(var(--radius)*1.4); }
-* { box-sizing:border-box; }
+* { box-sizing:border-box; scrollbar-width:thin; scrollbar-color:#b9bbc8 transparent; }
+.theme-dark * { scrollbar-color:#656779 transparent; }
+*::-webkit-scrollbar { width:8px; height:8px; }
+*::-webkit-scrollbar-track { background:transparent; }
+*::-webkit-scrollbar-thumb { background:#b9bbc8; border:2px solid transparent; border-radius:999px; background-clip:padding-box; }
+*::-webkit-scrollbar-thumb:hover { background:#9295a5; border:2px solid transparent; background-clip:padding-box; }
+.theme-dark *::-webkit-scrollbar-thumb { background:#656779; }
+.theme-dark *::-webkit-scrollbar-thumb:hover { background:#85889a; }
 body { margin:0; background:var(--background); color:var(--foreground); font-family:Arial, Helvetica, sans-serif; font-size:14px; -webkit-font-smoothing:antialiased; }
+html { min-height:100%; background:var(--background); overscroll-behavior-y:none; }
+html:has(.theme-dark), body:has(.theme-dark) { background:#11121a; color-scheme:dark; }
 button,input,select { font:inherit; } button { color:inherit; cursor:pointer; } button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible { outline:3px solid #a99eff; outline-offset:2px; }
 .app-shell { min-height:100vh; background:var(--background); color:var(--foreground); transition:background .2s,color .2s; --panel:#fff; --panel-border:#e9eaf0; --subtle:#f6f6f9; --ink:#1d2030; --muted-ink:#85899a; --table-line:#eff0f4; }
 .app-shell.theme-dark { color-scheme:dark; --background:#11121a; --foreground:#eff0f7; --card:#191a24; --card-foreground:#eff0f7; --popover:#191a24; --popover-foreground:#eff0f7; --primary:#8779fa; --primary-foreground:#fff; --secondary:#20212c; --secondary-foreground:#e5e6ed; --muted:#242530; --muted-foreground:#a1a2b1; --accent:#28253e; --accent-foreground:#c9c0ff; --border:#2c2d39; --input:#343541; --ring:#8779fa; --sidebar:#171821; --sidebar-foreground:#c8c8d2; --sidebar-border:#292a35; --panel:#191a24; --panel-border:#2c2d39; --subtle:#22232d; --ink:#eff0f7; --muted-ink:#a1a2b1; --table-line:#282933; background:#11121a; }
@@ -28,6 +37,8 @@ button:disabled, input:disabled, select:disabled { cursor: not-allowed; opacity:
 .select-button select { background: transparent; border: 0; color: inherit; font: inherit; }
 .select-button option { background: var(--panel); color: var(--ink); }
 .inline-error { padding: 12px 16px; margin: 12px 0; color: #b63d51; background: #fff0f1; border-radius: 8px; font-size: 12px; line-height: 1.6; }
+.avatar { position: relative; }
+.avatar-photo { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .inline-error button { background: transparent; color: inherit; border: 0; text-decoration: underline; margin-left: 8px; }
 .access-screen { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: #f7f8fc; }
 .access-panel { max-width: 520px; padding: 32px; color: #242536; }

@@ -37,7 +37,9 @@ export function UserDirectory({
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All users");
   const [role, setRole] = useState("All roles");
+  const [sortBy, setSortBy] = useState<"name" | "createdAt">("name");
   const [descending, setDescending] = useState(false);
+  const [total, setTotal] = useState<number | null>(null);
   const [cursors, setCursors] = useState<string[]>([""]);
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
@@ -64,10 +66,14 @@ export function UserDirectory({
     setLoading(true);
     setError("");
     setResult(null);
+    if (!cursor) setTotal(null);
     setSelected([]);
     void adminApi<UserPage>(readPath, { signal: controller.signal })
       .then((data) => {
-        if (!controller.signal.aborted) setResult(data);
+        if (!controller.signal.aborted) {
+          setResult(data);
+          if (data.total !== null) setTotal(data.total);
+        }
       })
       .catch((error) => {
         if (controller.signal.aborted) return;
@@ -80,17 +86,22 @@ export function UserDirectory({
     return () => controller.abort();
   }, [readPath, revision, retry, onAccessError]);
 
-  const people = useMemo(
-    () =>
-      (result?.users || [])
-        .filter(
-          (person) =>
-            (status === "All users" || person.status === status) &&
-            (role === "All roles" || person.roles.includes(role)),
-        )
-        .sort((a, b) => (descending ? -1 : 1) * a.name.localeCompare(b.name)),
-    [result, status, role, descending],
-  );
+  const people = useMemo(() => {
+    const filtered = (result?.users || []).filter(
+      (person) =>
+        (status === "All users" || person.status === status) &&
+        (role === "All roles" || person.roles.includes(role)),
+    );
+    return filtered.sort((a, b) => {
+      if (sortBy === "name")
+        return (descending ? -1 : 1) * a.name.localeCompare(b.name);
+      const aCreated = a.createdAt ? Date.parse(a.createdAt) : NaN;
+      const bCreated = b.createdAt ? Date.parse(b.createdAt) : NaN;
+      if (Number.isNaN(aCreated)) return Number.isNaN(bCreated) ? 0 : 1;
+      if (Number.isNaN(bCreated)) return -1;
+      return (descending ? -1 : 1) * (aCreated - bCreated);
+    });
+  }, [result, status, role, sortBy, descending]);
   const selectable = people
     .filter((user) => user.uid && user.uid !== currentUid)
     .map((user) => user.uid!);
@@ -146,13 +157,13 @@ export function UserDirectory({
         <div>
           <div className="title-with-badge">
             <h2>{moderation ? "Account moderation" : "Accounts"}</h2>
-            {result && (
-              <span className="total-badge">{formatNumber(result.total)}</span>
+            {total !== null && (
+              <span className="total-badge">{formatNumber(total)}</span>
             )}
           </div>
           <p>
-            Email search covers all profiles. Status, role, and name sorting
-            apply to this page.
+            Email search covers all profiles. Filters and sorting apply to
+            this page.
           </p>
         </div>
         <button
@@ -274,16 +285,31 @@ export function UserDirectory({
           selected={selected}
           busy={waiting}
           currentUid={currentUid}
+          sortBy={sortBy}
+          descending={descending}
           onToggleUser={toggleUser}
           onToggleAll={toggleAll}
-          onSort={() => setDescending((value) => !value)}
+          onSort={(field) => {
+            if (sortBy === field) {
+              setDescending((value) => !value);
+            } else {
+              setSortBy(field);
+              setDescending(field === "createdAt");
+            }
+          }}
           onAction={setActionUser}
         />
       ) : null}
       <div className="table-footer">
         <span>
           Page {page + 1} · {people.length} shown ·{" "}
-          {result ? formatNumber(result.total) : "—"} matching profiles
+          {total !== null
+            ? `${formatNumber(total)} matching profiles`
+            : result?.nextCursor
+              ? "More profiles available"
+              : result
+                ? "End of results"
+                : "—"}
         </span>
         <div className="pagination">
           <button

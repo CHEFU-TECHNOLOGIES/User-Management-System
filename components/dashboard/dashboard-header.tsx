@@ -44,6 +44,18 @@ export function DashboardHeader({
           onClick={() => void openAccount("/account")}
         >
           {initials(account.name)}
+          {account.photoURL && (
+            <img
+              key={account.photoURL}
+              className="avatar-photo"
+              src={account.photoURL}
+              alt=""
+              referrerPolicy="no-referrer"
+              onError={(event) => {
+                event.currentTarget.hidden = true;
+              }}
+            />
+          )}
         </button>
       </div>
     </header>
