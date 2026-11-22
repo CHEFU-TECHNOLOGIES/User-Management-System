@@ -2,6 +2,8 @@
 
 import { Check, ChevronsUpDown, MoreHorizontal } from "lucide-react";
 import { formatDate, initials, type ManagedUser } from "@/lib/admin-api";
+import { UserApps } from "./user-apps";
+import { UserCountry } from "./user-country";
 
 type UsersTableProps = {
   people: ManagedUser[];
@@ -49,6 +51,9 @@ export function UsersTable({
               </button>
             </th>
             <th>Roles</th>
+            <th>Apps signed in to</th>
+            <th>Country</th>
+            <th>Gender</th>
             <th>Status</th>
             <th>Verification</th>
             <th>Joined</th>
@@ -86,6 +91,13 @@ export function UsersTable({
                 </span>
               </td>
               <td>
+                <UserApps apps={person.apps} />
+              </td>
+              <td>
+                <UserCountry country={person.country} />
+              </td>
+              <td>{person.gender || "Not specified"}</td>
+              <td>
                 <span
                   className={`status-pill status-${person.status.toLowerCase()}`}
                 >
@@ -121,7 +133,7 @@ export function UsersTable({
           ))}
           {people.length === 0 && (
             <tr>
-              <td colSpan={7} className="empty-state">
+              <td colSpan={10} className="empty-state">
                 No users match this view.
               </td>
             </tr>

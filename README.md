@@ -38,9 +38,20 @@ page. Account actions persist to Firebase; enabling an account does not verify
 email. Roles and suspension revoke existing sessions. Your own access cannot be
 changed from this console. Other product roles are retained.
 
+The user table and account details show apps from the central profile, including
+first/last activity and revoked access. App names are included in CSV exports.
+Updated user-page cache keys load the new response shape once.
+Gender is shown in the table, account details, and exports using the saved
+profile value. Missing values display as `Not specified`.
+Country is shown in the table, account details, and CSV. Saved country takes
+precedence; detected-country fallbacks are labeled, and missing data shows Unknown.
+
 ## Client caching
 
-Successful reads and in-flight requests are shared in memory for the current tab.
+Successful page reads are persisted in IndexedDB under the verified administrator
+UID. Each reopened app validates the server session once before reading that
+account's cache. Session responses and failed requests are never persisted.
+Concurrent requests are shared in memory for the current tab.
 Navigating between pages, revisiting searches or pages, switching back to a cached
 chart range, and refocusing the tab reuse existing data. There are no background
 refresh timers or automatic retries. A first visit to uncached data still loads it.
@@ -49,8 +60,11 @@ Refresh clears the read cache and reloads the visible data. Account mutations
 invalidate users, statistics, and audit data, then reload the current view; the
 session read is retained. Retry explicitly reloads a failed request. Sign-in,
 sign-out, opening CheFu Account, and server access-denied responses clear the
-cache. Data is not persisted in browser storage and a full page reload starts
-fresh. The API continues to authorize every server request independently.
+account's persistent cache before navigation. Other open tabs receive cache
+invalidation and sign-out messages. A full browser reload validates the session
+but retains page data; the dashboard Refresh button deliberately clears that
+data and reloads it. Storage restrictions fall back to memory caching. The API
+continues to authorize every server request independently.
 
 ## Validation
 

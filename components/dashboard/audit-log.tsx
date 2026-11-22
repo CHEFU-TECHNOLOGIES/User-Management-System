@@ -71,8 +71,8 @@ export function AuditLog({
         <p role="alert" className="inline-error">
           {error}{" "}
           <button
-            onClick={() => {
-              invalidateAdminReads(readPath);
+            onClick={async () => {
+              await invalidateAdminReads(readPath);
               setRetry((value) => value + 1);
             }}
           >

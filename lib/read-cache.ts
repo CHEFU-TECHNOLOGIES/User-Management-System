@@ -1,7 +1,7 @@
 type Entry = { controller: AbortController; promise: Promise<unknown> };
 
-// One instance lives only for this tab's JavaScript lifetime. No background
-// revalidation, expiry timers, persistent storage, or automatic retries.
+// Memory layer for shared requests. AccountCache supplies persistent data;
+// session validation uses this layer alone and is fresh on each app startup.
 export class ReadCache {
   private readonly entries = new Map<string, Entry>();
 

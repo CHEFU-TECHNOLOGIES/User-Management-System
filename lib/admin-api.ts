@@ -1,4 +1,7 @@
 import { ReadCache } from "./read-cache";
+import { AccountCache } from "./account-cache";
+import { IndexedDbCache } from "./persistent-cache";
+import { publishCacheEvent, subscribeCacheEvents } from "./cache-events";
 
 export type AdminAccount = {
   uid: string;
@@ -11,6 +14,19 @@ export type ManagedUser = {
   email: string;
   name: string;
   roles: string[];
+  apps: {
+    id: string;
+    name: string;
+    enabled: boolean;
+    firstSeenAt: string | null;
+    lastSeenAt: string | null;
+  }[];
+  country: {
+    code: string | null;
+    name: string;
+    source: "profile" | "detected";
+  } | null;
+  gender: string | null;
   status: "Active" | "Pending" | "Suspended" | "Unavailable";
   verified: boolean;
   createdAt: string | null;
@@ -53,13 +69,76 @@ export class ApiError extends Error {
   }
 }
 const reads = new ReadCache();
+const dataCache = new AccountCache(new IndexedDbCache());
+let sessionRevision = 0;
 
-export function invalidateAdminReads(path?: string) {
-  reads.invalidate(path ? (key) => key === path : undefined);
+function cachePath(path: string) {
+  const url = new URL(path, "https://cache.local");
+  if (url.searchParams.has("search"))
+    url.searchParams.set(
+      "search",
+      url.searchParams.get("search")!.trim().toLowerCase(),
+    );
+  url.searchParams.sort();
+  // Fetch the updated profile response once instead of reusing older pages.
+  return `${url.pathname === "/users" ? "v4:" : ""}${url.pathname}${url.search}`;
 }
 
-export function invalidateAdminData() {
-  reads.invalidate((key) => key !== "/session");
+subscribeCacheEvents((event) => {
+  if (event.kind === "session") {
+    sessionRevision++;
+    reads.invalidate();
+    dataCache.forget();
+    if (typeof window !== "undefined")
+      window.dispatchEvent(new Event("chefu-admin-session-cleared"));
+  } else if (event.account === dataCache.identity)
+    dataCache.dropMemory(event.path);
+});
+
+export async function invalidateAdminReads(path?: string) {
+  if (path) {
+    const key = cachePath(path);
+    await dataCache.invalidate(key);
+    publishCacheEvent({ kind: "data", account: dataCache.identity, path: key });
+  } else {
+    sessionRevision++;
+    reads.invalidate();
+    await dataCache.invalidate();
+    publishCacheEvent({ kind: "data", account: dataCache.identity });
+  }
+}
+
+async function invalidateAdminData() {
+  await dataCache.invalidate();
+  publishCacheEvent({ kind: "data", account: dataCache.identity });
+}
+
+async function clearAccountCache() {
+  const account = dataCache.identity;
+  sessionRevision++;
+  reads.invalidate();
+  await dataCache.clear();
+  publishCacheEvent({ kind: "session", account });
+}
+
+async function session(signal?: AbortSignal) {
+  return reads.read(
+    "/session",
+    async (requestSignal) => {
+      const revision = sessionRevision;
+      const account = await requestAdmin<AdminAccount>("/session", {
+        signal: requestSignal,
+      });
+      requestSignal.throwIfAborted();
+      if (revision !== sessionRevision)
+        throw new DOMException("Session changed.", "AbortError");
+      if (!account.uid || typeof account.uid !== "string")
+        throw new Error("The server returned an invalid account identity.");
+      dataCache.activate(account.uid);
+      return account;
+    },
+    signal,
+  );
 }
 
 export async function adminApi<T>(
@@ -67,9 +146,13 @@ export async function adminApi<T>(
   init: RequestInit = {},
 ): Promise<T> {
   const method = (init.method || "GET").toUpperCase();
+  if (method === "GET" && path === "/session")
+    return session(init.signal || undefined) as Promise<T>;
+  await session(init.signal || undefined);
   if (method === "GET") {
-    return reads.read(
-      path,
+    const key = cachePath(path);
+    return dataCache.read(
+      key,
       (signal) => requestAdmin<T>(path, { ...init, signal }),
       init.signal || undefined,
     );
@@ -78,7 +161,7 @@ export async function adminApi<T>(
     return await requestAdmin<T>(path, init);
   } finally {
     // Even failed mutations can partially apply server changes.
-    invalidateAdminData();
+    await invalidateAdminData();
   }
 }
 
@@ -94,9 +177,9 @@ async function requestAdmin<T>(path: string, init: RequestInit): Promise<T> {
     },
   });
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403)
-      invalidateAdminReads();
     const data = await response.json().catch(() => ({}));
+    if (response.status === 401 || response.status === 403)
+      await clearAccountCache();
     const message = Array.isArray(data.message)
       ? data.message.join(" ")
       : data.message || data.error;
@@ -108,12 +191,16 @@ async function requestAdmin<T>(path: string, init: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 export function accountUrl(path: "/login" | "/logout" | "/account") {
-  invalidateAdminReads();
   const params = new URLSearchParams({
     app: "admin",
     returnTo: window.location.origin + "/",
   });
   return `${accountBase}${path}?${params}`;
+}
+export async function openAccount(path: "/login" | "/logout" | "/account") {
+  // Complete persistent deletion before leaving this document.
+  await clearAccountCache();
+  window.location.assign(accountUrl(path));
 }
 export function errorMessage(error: unknown) {
   return error instanceof Error

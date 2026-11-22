@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { accountUrl, initials, type AdminAccount } from "@/lib/admin-api";
+import { openAccount, initials, type AdminAccount } from "@/lib/admin-api";
 
 const navGroups = [
   {
@@ -75,7 +75,7 @@ export function DashboardSidebar({
           <button
             className="icon-button account-menu"
             aria-label="Sign out"
-            onClick={() => window.location.assign(accountUrl("/logout"))}
+            onClick={() => void openAccount("/logout")}
           >
             <LogOut size={18} />
           </button>

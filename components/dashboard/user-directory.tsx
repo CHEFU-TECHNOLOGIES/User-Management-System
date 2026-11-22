@@ -14,6 +14,7 @@ import {
 import { downloadCsv } from "@/lib/csv";
 import { UsersTable } from "./users-table";
 import { UserActionsDialog } from "./user-actions-dialog";
+import { countryLabel } from "./user-country";
 
 type Props = {
   currentUid: string;
@@ -49,13 +50,14 @@ export function UserDirectory({
   const readPath = `/users?${new URLSearchParams({ limit: "25", search, cursor })}`;
 
   useEffect(() => {
+    if (query.trim() === search) return;
     const timer = window.setTimeout(() => {
       setSearch(query.trim());
       setPage(0);
       setCursors([""]);
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [query]);
+  }, [query, search]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -158,11 +160,25 @@ export function UserDirectory({
           disabled={waiting || !people.length}
           onClick={() => {
             downloadCsv([
-              ["Name", "Email", "Roles", "Status", "Joined"],
+              [
+                "Name",
+                "Email",
+                "Roles",
+                "Apps signed in to",
+                "Country",
+                "Gender",
+                "Status",
+                "Joined",
+              ],
               ...people.map((person) => [
                 person.name,
                 person.email,
                 person.roles.join(", "),
+                (person.apps || [])
+                  .map((app) => `${app.name}${app.enabled ? "" : " (revoked)"}`)
+                  .join(", "),
+                countryLabel(person.country || null),
+                person.gender || "Not specified",
                 person.status,
                 person.createdAt || "",
               ]),
@@ -224,8 +240,8 @@ export function UserDirectory({
         <div className="inline-error" role="alert">
           {error}{" "}
           <button
-            onClick={() => {
-              invalidateAdminReads(readPath);
+            onClick={async () => {
+              await invalidateAdminReads(readPath);
               setRetry((value) => value + 1);
             }}
             disabled={waiting}

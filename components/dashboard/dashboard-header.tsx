@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRight, Menu, Moon, Sun } from "lucide-react";
-import { accountUrl, initials, type AdminAccount } from "@/lib/admin-api";
+import { openAccount, initials, type AdminAccount } from "@/lib/admin-api";
 
 export function DashboardHeader({
   active,
@@ -41,7 +41,7 @@ export function DashboardHeader({
         <button
           className="avatar avatar-you top-avatar"
           aria-label="Manage your account"
-          onClick={() => window.location.assign(accountUrl("/account"))}
+          onClick={() => void openAccount("/account")}
         >
           {initials(account.name)}
         </button>

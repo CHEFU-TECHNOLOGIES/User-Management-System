@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { accountUrl } from "@/lib/admin-api";
+import { openAccount } from "@/lib/admin-api";
 import { DashboardSidebar } from "./dashboard-sidebar";
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardWelcome } from "./dashboard-welcome";
@@ -63,9 +63,7 @@ export function AdminDashboard() {
                                 <button
                                     className="button button-primary"
                                     onClick={() =>
-                                        window.location.assign(
-                                            accountUrl("/login"),
-                                        )
+                                        void openAccount("/login")
                                     }
                                 >
                                     {access === 403
@@ -189,9 +187,7 @@ export function AdminDashboard() {
                                 <button
                                     className="button button-primary"
                                     onClick={() =>
-                                        window.location.assign(
-                                            accountUrl("/account"),
-                                        )
+                                        void openAccount("/account")
                                     }
                                 >
                                     Open Account

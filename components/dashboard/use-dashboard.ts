@@ -6,7 +6,6 @@ import {
   errorMessage,
   isAccessError,
   invalidateAdminReads,
-  invalidateAdminData,
   type AdminAccount,
   type Summary,
 } from "@/lib/admin-api";
@@ -19,20 +18,32 @@ export function useDashboard() {
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30);
   const [revision, setRevision] = useState(0);
-  const reload = useCallback(() => {
-    invalidateAdminReads();
+  const reload = useCallback(async () => {
+    setLoading(true);
+    await invalidateAdminReads();
     setRevision((value) => value + 1);
   }, []);
   const refreshData = useCallback(() => {
-    invalidateAdminData();
+    // The API client already invalidated and persisted the mutation's changes.
     setRevision((value) => value + 1);
   }, []);
   const handleAccess = useCallback((error: unknown) => {
     if (!isAccessError(error)) return;
-    invalidateAdminReads();
     setAccess(error.status);
     setAccount(null);
     setSummary(null);
+  }, []);
+
+  useEffect(() => {
+    const clear = () => {
+      setAccount(null);
+      setSummary(null);
+      setAccess(401);
+      setLoading(false);
+    };
+    window.addEventListener("chefu-admin-session-cleared", clear);
+    return () =>
+      window.removeEventListener("chefu-admin-session-cleared", clear);
   }, []);
 
   useEffect(() => {

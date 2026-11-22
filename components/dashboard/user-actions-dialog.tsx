@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { UserApps } from "./user-apps";
+import { UserCountry } from "./user-country";
 import {
   adminApi,
   errorMessage,
@@ -48,7 +50,9 @@ export function UserActionsDialog({
         method: "PATCH",
         body: JSON.stringify(change),
       });
-      notify("Account updated. Access changes take effect across the platforms.");
+      notify(
+        "Account updated. Access changes take effect across the platforms.",
+      );
       onChanged();
       onClose();
     } catch (error) {
@@ -87,6 +91,12 @@ export function UserActionsDialog({
       <dl className="account-details">
         <dt>Status</dt>
         <dd>{user.status}</dd>
+        <dt>Country</dt>
+        <dd>
+          <UserCountry country={user.country} />
+        </dd>
+        <dt>Gender</dt>
+        <dd>{user.gender || "Not specified"}</dd>
         <dt>Created</dt>
         <dd>{formatDate(user.createdAt)}</dd>
         <dt>Last sign-in</dt>
@@ -94,6 +104,10 @@ export function UserActionsDialog({
         <dt>Current roles</dt>
         <dd>{user.roles.join(", ") || "user"}</dd>
       </dl>
+      <section className="user-app-section" aria-label="Apps signed in to">
+        <h3>Apps signed in to</h3>
+        <UserApps apps={user.apps} detailed />
+      </section>
       {ownAccount ? (
         <p>
           You can manage your own profile in your account. Your administrator
