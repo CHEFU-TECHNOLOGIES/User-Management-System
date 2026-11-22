@@ -7,6 +7,7 @@ import {
   errorMessage,
   formatNumber,
   isAccessError,
+  invalidateAdminReads,
   type ManagedUser,
   type UserPage,
 } from "@/lib/admin-api";
@@ -45,6 +46,7 @@ export function UserDirectory({
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const cursor = cursors[page] || "";
+  const readPath = `/users?${new URLSearchParams({ limit: "25", search, cursor })}`;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -61,8 +63,7 @@ export function UserDirectory({
     setError("");
     setResult(null);
     setSelected([]);
-    const params = new URLSearchParams({ limit: "25", search, cursor });
-    void adminApi<UserPage>(`/users?${params}`, { signal: controller.signal })
+    void adminApi<UserPage>(readPath, { signal: controller.signal })
       .then((data) => {
         if (!controller.signal.aborted) setResult(data);
       })
@@ -75,7 +76,7 @@ export function UserDirectory({
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [search, cursor, revision, retry, onAccessError]);
+  }, [readPath, revision, retry, onAccessError]);
 
   const people = useMemo(
     () =>
@@ -142,7 +143,7 @@ export function UserDirectory({
       <div className="directory-heading">
         <div>
           <div className="title-with-badge">
-            <h2>{moderation ? "Account moderation" : "CheFu accounts"}</h2>
+            <h2>{moderation ? "Account moderation" : "Accounts"}</h2>
             {result && (
               <span className="total-badge">{formatNumber(result.total)}</span>
             )}
@@ -223,7 +224,10 @@ export function UserDirectory({
         <div className="inline-error" role="alert">
           {error}{" "}
           <button
-            onClick={() => setRetry((value) => value + 1)}
+            onClick={() => {
+              invalidateAdminReads(readPath);
+              setRetry((value) => value + 1);
+            }}
             disabled={waiting}
           >
             Retry
@@ -246,7 +250,7 @@ export function UserDirectory({
       )}
       {loading ? (
         <p className="empty-state" role="status">
-          Loading CheFu accounts…
+          Loading accounts…
         </p>
       ) : !error || result ? (
         <UsersTable

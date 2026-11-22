@@ -48,7 +48,7 @@ export function UserActionsDialog({
         method: "PATCH",
         body: JSON.stringify(change),
       });
-      notify("Account updated. Access changes take effect across CheFu.");
+      notify("Account updated. Access changes take effect across the platforms.");
       onChanged();
       onClose();
     } catch (error) {
@@ -96,7 +96,7 @@ export function UserActionsDialog({
       </dl>
       {ownAccount ? (
         <p>
-          You can manage your own profile in CheFu Account. Your administrator
+          You can manage your own profile in your account. Your administrator
           access cannot be changed here.
         </p>
       ) : (

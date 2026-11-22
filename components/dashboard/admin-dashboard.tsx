@@ -47,17 +47,17 @@ export function AdminDashboard() {
                     <h1>CT User Management</h1>
                     {loading ? (
                         <p role="status">
-                            Checking your CheFu administrator session…
+                            Checking your administrator session…
                         </p>
                     ) : (
                         <>
                             <p role={error ? "alert" : undefined}>
                                 {access === 401
-                                    ? "Sign in with your CheFu administrator account to continue."
+                                    ? "Sign in with your administrator account to continue."
                                     : access === 403
                                       ? "This account does not have administrator access."
                                       : error ||
-                                        "Sign in to manage CheFu accounts."}
+                                        "Sign in to manage accounts."}
                             </p>
                             <div className="dialog-actions">
                                 <button
@@ -155,7 +155,7 @@ export function AdminDashboard() {
                             <p>
                                 Open an account’s action menu to change its
                                 role. Administrator accounts can manage all
-                                central CheFu users.
+                                central users.
                             </p>
                         </div>
                     )}
@@ -164,7 +164,7 @@ export function AdminDashboard() {
                             currentUid={account.uid}
                             revision={dashboard.revision}
                             moderation={active === "Moderation"}
-                            onChanged={reload}
+                            onChanged={dashboard.refreshData}
                             onAccessError={handleAccess}
                             notify={notify}
                         />
@@ -183,7 +183,7 @@ export function AdminDashboard() {
                             </p>
                             <p>
                                 Manage your profile, password, sessions, and
-                                multi-factor authentication in CheFu Account.
+                                multi-factor authentication in your account.
                             </p>
                             <div className="dialog-actions">
                                 <button
@@ -194,7 +194,7 @@ export function AdminDashboard() {
                                         )
                                     }
                                 >
-                                    Open CheFu Account
+                                    Open Account
                                 </button>
                                 <button
                                     className="button button-secondary"

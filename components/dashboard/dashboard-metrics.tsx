@@ -7,7 +7,7 @@ export function DashboardMetrics({ summary }: { summary: Summary | null }) {
       icon: Users,
       label: "Total accounts",
       value: summary?.total,
-      note: "Central CheFu account profiles",
+      note: "Central account profiles",
     },
     {
       icon: UserCheck,

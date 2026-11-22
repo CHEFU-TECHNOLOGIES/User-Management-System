@@ -46,7 +46,7 @@ export function DashboardWelcome({
               : active}
           </h1>
           <p className="page-subtitle">
-            Manage CheFu accounts and administrator access.
+            Manage accounts and administrator access.
           </p>
         </div>
         <div className="welcome-actions">

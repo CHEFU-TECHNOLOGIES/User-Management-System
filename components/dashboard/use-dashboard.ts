@@ -5,6 +5,8 @@ import {
   adminApi,
   errorMessage,
   isAccessError,
+  invalidateAdminReads,
+  invalidateAdminData,
   type AdminAccount,
   type Summary,
 } from "@/lib/admin-api";
@@ -17,9 +19,17 @@ export function useDashboard() {
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30);
   const [revision, setRevision] = useState(0);
-  const reload = useCallback(() => setRevision((value) => value + 1), []);
+  const reload = useCallback(() => {
+    invalidateAdminReads();
+    setRevision((value) => value + 1);
+  }, []);
+  const refreshData = useCallback(() => {
+    invalidateAdminData();
+    setRevision((value) => value + 1);
+  }, []);
   const handleAccess = useCallback((error: unknown) => {
     if (!isAccessError(error)) return;
+    invalidateAdminReads();
     setAccess(error.status);
     setAccount(null);
     setSummary(null);
@@ -53,12 +63,6 @@ export function useDashboard() {
     return () => controller.abort();
   }, [days, revision, handleAccess]);
 
-  // Recheck authorization when returning after editing access in another tab.
-  useEffect(() => {
-    const refresh = () => reload();
-    window.addEventListener("focus", refresh);
-    return () => window.removeEventListener("focus", refresh);
-  }, [reload]);
   return {
     account,
     summary,
@@ -68,6 +72,7 @@ export function useDashboard() {
     days,
     setDays,
     reload,
+    refreshData,
     revision,
     handleAccess,
   };

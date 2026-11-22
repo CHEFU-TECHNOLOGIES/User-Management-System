@@ -16,9 +16,9 @@ backend's `FRONTEND_ORIGINS` and use local cookie settings. Sign in through the
 local Account app: production-domain cookies are not sent to localhost.
 
 Production defaults use `https://api.chefu.co.za` and
-`https://myaccount.chefu.co.za`. CheFu Account currently allows the admin app to
-return to `https://internal.chefu.co.za`; configure its redirect policy and the
-backend CORS allowlist if deploying this console on a different host.
+`https://myaccount.chefu.co.za`. The backend and CheFu Account allow the admin app
+at `https://admin.chefu.co.za` and retain `https://internal.chefu.co.za`.
+Deploy both services' allowlist updates when enabling the new host.
 
 ## Backend contract
 
@@ -37,6 +37,20 @@ filters and name sorting apply to the current page. Export downloads the visible
 page. Account actions persist to Firebase; enabling an account does not verify
 email. Roles and suspension revoke existing sessions. Your own access cannot be
 changed from this console. Other product roles are retained.
+
+## Client caching
+
+Successful reads and in-flight requests are shared in memory for the current tab.
+Navigating between pages, revisiting searches or pages, switching back to a cached
+chart range, and refocusing the tab reuse existing data. There are no background
+refresh timers or automatic retries. A first visit to uncached data still loads it.
+
+Refresh clears the read cache and reloads the visible data. Account mutations
+invalidate users, statistics, and audit data, then reload the current view; the
+session read is retained. Retry explicitly reloads a failed request. Sign-in,
+sign-out, opening CheFu Account, and server access-denied responses clear the
+cache. Data is not persisted in browser storage and a full page reload starts
+fresh. The API continues to authorize every server request independently.
 
 ## Validation
 

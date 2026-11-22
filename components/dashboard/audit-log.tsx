@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   adminApi,
   errorMessage,
+  invalidateAdminReads,
   type AuditEvent,
   type AuditPage,
 } from "@/lib/admin-api";
@@ -16,21 +17,19 @@ export function AuditLog({
   onAccessError: (error: unknown) => void;
 }) {
   const [events, setEvents] = useState<AuditEvent[]>([]);
-  const [cursor, setCursor] = useState("");
+  const [paging, setPaging] = useState({ cursor: "", revision });
+  const cursor = paging.revision === revision ? paging.cursor : "";
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
-  useEffect(() => {
-    setEvents([]);
-    setCursor("");
-    setNextCursor(null);
-  }, [revision]);
+  const readPath = `/audit?${new URLSearchParams({ cursor })}`;
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    void adminApi<AuditPage>(`/audit?${new URLSearchParams({ cursor })}`, {
+    setNextCursor(null);
+    void adminApi<AuditPage>(readPath, {
       signal: controller.signal,
     })
       .then((result) => {
@@ -59,7 +58,7 @@ export function AuditLog({
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [cursor, revision, retry, onAccessError]);
+  }, [cursor, readPath, revision, retry, onAccessError]);
   return (
     <section className="panel audit-panel">
       <div className="panel-heading">
@@ -71,7 +70,14 @@ export function AuditLog({
       {error && (
         <p role="alert" className="inline-error">
           {error}{" "}
-          <button onClick={() => setRetry((value) => value + 1)}>Retry</button>
+          <button
+            onClick={() => {
+              invalidateAdminReads(readPath);
+              setRetry((value) => value + 1);
+            }}
+          >
+            Retry
+          </button>
         </p>
       )}
       <div className="table-scroll">
@@ -124,7 +130,7 @@ export function AuditLog({
         <button
           className="button button-secondary"
           disabled={loading}
-          onClick={() => setCursor(nextCursor)}
+          onClick={() => setPaging({ cursor: nextCursor, revision })}
         >
           Load more
         </button>

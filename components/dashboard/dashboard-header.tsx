@@ -26,7 +26,7 @@ export function DashboardHeader({
         <Menu size={20} />
       </button>
       <div className="breadcrumbs">
-        <span>CheFu</span>
+        <span>Dashboard</span>
         <ChevronRight size={14} />
         <b>{active}</b>
       </div>
@@ -40,7 +40,7 @@ export function DashboardHeader({
         </button>
         <button
           className="avatar avatar-you top-avatar"
-          aria-label="Manage your CheFu account"
+          aria-label="Manage your account"
           onClick={() => window.location.assign(accountUrl("/account"))}
         >
           {initials(account.name)}
