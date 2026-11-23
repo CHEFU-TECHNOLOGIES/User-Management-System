@@ -19,7 +19,6 @@ import { countryLabel } from "./user-country";
 type Props = {
   currentUid: string;
   revision: number;
-  moderation?: boolean;
   onChanged: () => void;
   onAccessError: (error: unknown) => void;
   notify: (message: string) => void;
@@ -27,7 +26,6 @@ type Props = {
 export function UserDirectory({
   currentUid,
   revision,
-  moderation,
   onChanged,
   onAccessError,
   notify,
@@ -156,7 +154,7 @@ export function UserDirectory({
       <div className="directory-heading">
         <div>
           <div className="title-with-badge">
-            <h2>{moderation ? "Account moderation" : "Accounts"}</h2>
+            <h2>Accounts</h2>
             {total !== null && (
               <span className="total-badge">{formatNumber(total)}</span>
             )}

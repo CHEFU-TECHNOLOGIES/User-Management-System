@@ -46,7 +46,29 @@ profile value. Missing values display as `Not specified`.
 Country is shown in the table, account details, and CSV. Saved country takes
 precedence; detected-country fallbacks are labeled, and missing data shows Unknown.
 
-## Client caching
+## Register applications
+
+Open **Apps → Register app** and enter a unique app ID, name, owner, web origins,
+and exact callback URLs. Public clients (browser/mobile) use S256 PKCE.
+Confidential clients keep their generated secret on their own server; the console
+shows it once and never writes it to the page cache. Registration can activate
+immediately or remain pending. Cards provide integration details, activation,
+revocation, and secret rotation. Platform applications remain read-only.
+
+This feature requires a one-time deployment of the backend, CheFu Account, and
+this console. After that deployment, registering new apps updates runtime sign-in,
+OAuth callback validation, CORS, and cookie mutation origin checks through the
+database, without editing application allowlists in source code. It configures
+identity access; hosting, DNS, and application-specific API permissions remain
+part of developing each app. See the backend's `docs/app-registration.md`.
+
+The app list uses the existing account-specific persistent read cache. Returning
+to Apps reuses it; registration, activation, revocation, and secret rotation reload
+only application data. Refresh reloads cached data explicitly. Secrets are never
+part of cached responses. Revoking stops new app sign-ins and OAuth token
+refreshes; existing access tokens can remain valid until their expiration.
+
+## Persistent read cache
 
 Successful page reads are persisted in IndexedDB under the verified administrator
 UID. Each reopened app validates the server session once before reading that

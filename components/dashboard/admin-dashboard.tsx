@@ -12,12 +12,15 @@ import { RoleDistribution } from "./role-distribution";
 import { UserDirectory } from "./user-directory";
 import { AuditLog } from "./audit-log";
 import { useDashboard } from "./use-dashboard";
+import { AppsSection } from "../apps/apps-section";
 
 export function AdminDashboard() {
     const dashboard = useDashboard();
     const { account, summary, access, error, loading, reload, handleAccess } =
         dashboard;
     const [active, setActive] = useState("Overview");
+    const [auditVisited, setAuditVisited] = useState(false);
+    const [auditRevision, setAuditRevision] = useState(dashboard.revision);
     const [dark, setDark] = useState(false);
     const [notice, setNotice] = useState("");
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -56,15 +59,12 @@ export function AdminDashboard() {
                                     ? "Sign in with your administrator account to continue."
                                     : access === 403
                                       ? "This account does not have administrator access."
-                                      : error ||
-                                        "Sign in to manage accounts."}
+                                      : error || "Sign in to manage accounts."}
                             </p>
                             <div className="dialog-actions">
                                 <button
                                     className="button button-primary"
-                                    onClick={() =>
-                                        void openAccount("/login")
-                                    }
+                                    onClick={() => void openAccount("/login")}
                                 >
                                     {access === 403
                                         ? "Choose another account"
@@ -88,7 +88,6 @@ export function AdminDashboard() {
         "Overview",
         "Users",
         "Roles & permissions",
-        "Moderation",
     ].includes(active);
     return (
         <div className={`app-shell ${dark ? "theme-dark" : ""}`}>
@@ -98,6 +97,10 @@ export function AdminDashboard() {
                 mobileOpen={mobileOpen}
                 onNavigate={(name) => {
                     setActive(name);
+                    if (name === "Audit logs") {
+                        setAuditVisited(true);
+                        setAuditRevision(dashboard.revision);
+                    }
                     setMobileOpen(false);
                 }}
             />
@@ -161,15 +164,24 @@ export function AdminDashboard() {
                         <UserDirectory
                             currentUid={account.uid}
                             revision={dashboard.revision}
-                            moderation={active === "Moderation"}
                             onChanged={dashboard.refreshData}
                             onAccessError={handleAccess}
                             notify={notify}
                         />
                     )}
-                    {active === "Audit logs" && (
-                        <AuditLog
+                    {auditVisited && (
+                        <div hidden={active !== "Audit logs"}>
+                            <AuditLog
+                                revision={auditRevision}
+                                onAccessError={handleAccess}
+                            />
+                        </div>
+                    )}
+                    {active === "Apps" && (
+                        <AppsSection
+                            owner={account.email}
                             revision={dashboard.revision}
+                            onChanged={dashboard.refreshData}
                             onAccessError={handleAccess}
                         />
                     )}
@@ -186,9 +198,7 @@ export function AdminDashboard() {
                             <div className="dialog-actions">
                                 <button
                                     className="button button-primary"
-                                    onClick={() =>
-                                        void openAccount("/account")
-                                    }
+                                    onClick={() => void openAccount("/account")}
                                 >
                                     Open Account
                                 </button>

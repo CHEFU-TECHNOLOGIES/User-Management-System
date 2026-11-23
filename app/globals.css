@@ -70,6 +70,15 @@ button:disabled, input:disabled, select:disabled { cursor: not-allowed; opacity:
 .user-app-details li { padding:10px; border:1px solid hsl(var(--app-hue) 55% 83%); border-radius:8px; color:hsl(var(--app-hue) 48% 32%); background:hsl(var(--app-hue) 88% 95%); }
 .user-app-details li>div { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; }
 .user-app-details p { margin:5px 0 0; color:var(--ink); opacity:.7; font-size:11px; }
+.audit-skeleton { display:grid; }
+.audit-skeleton-row { min-height:52px; display:grid; grid-template-columns:.9fr 1.2fr 1.2fr 1.4fr .7fr; align-items:center; gap:12px; border-bottom:1px solid var(--table-line); }
+.audit-skeleton-row:last-child { border-bottom:0; }
+.audit-skeleton-row span { height:9px; max-width:110px; border-radius:999px; background:linear-gradient(90deg,var(--subtle) 25%,var(--panel-border) 50%,var(--subtle) 75%); background-size:200% 100%; animation:audit-skeleton-shimmer 1.4s ease-in-out infinite; }
+.audit-skeleton-row span:nth-child(2),.audit-skeleton-row span:nth-child(3) { max-width:150px; }
+.audit-skeleton-row span:nth-child(4) { max-width:180px; }
+.audit-skeleton-row span:last-child { max-width:70px; }
+@keyframes audit-skeleton-shimmer { to { background-position:-200% 0; } }
+@media (prefers-reduced-motion:reduce) { .audit-skeleton-row span { animation:none; } }
 @media (min-width:1450px) { .page-content { padding-top:40px; }.metric-card { padding:17px 18px; }.growth-panel,.distribution-panel { padding:19px 21px 15px; }.chart-area { height:190px; } }
 @media (max-width:1100px) { .sidebar { width:220px; }.main-area { margin-left:220px; }.page-content { padding:28px 24px 20px; }.topbar { padding:0 24px; }.metrics-grid { gap:9px; }.metric-card { padding:12px; }.metric-bottom { gap:6px; }.metric-bottom strong { font-size:22px; }.analytics-grid { grid-template-columns:minmax(0,1.5fr) minmax(225px,.85fr); gap:10px; } }
 @media (max-width:850px) { .sidebar { width:250px; transform:translateX(-100%); transition:transform .22s ease; box-shadow:none; }.sidebar-open { transform:translateX(0); box-shadow:12px 0 40px #15162b18; }.main-area { margin-left:0; }.mobile-menu { display:grid; margin-right:5px; }.mobile-scrim { display:block; position:fixed; inset:0; z-index:19; border:0; background:#14152250; }.topbar { justify-content:flex-start; gap:8px; }.topbar-actions { margin-left:auto; }.metrics-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.analytics-grid { grid-template-columns:minmax(0,1.55fr) minmax(220px,.9fr); } }

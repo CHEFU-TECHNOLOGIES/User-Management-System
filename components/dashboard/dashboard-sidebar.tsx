@@ -25,7 +25,7 @@ const navGroups = [
         label: "MANAGEMENT",
         items: [
             { name: "Roles & permissions", icon: ShieldCheck },
-            { name: "Moderation", icon: Blocks },
+            { name: "Apps", icon: Blocks },
             { name: "Audit logs", icon: FileClock },
         ],
     },

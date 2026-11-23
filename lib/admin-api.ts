@@ -109,7 +109,11 @@ export async function invalidateAdminReads(path?: string) {
   }
 }
 
-async function invalidateAdminData() {
+async function invalidateAdminData(path: string) {
+  if (path === '/apps' || path.startsWith('/apps/')) {
+    await invalidateAdminReads('/apps');
+    return;
+  }
   await dataCache.invalidate();
   publishCacheEvent({ kind: "data", account: dataCache.identity });
 }
@@ -162,12 +166,13 @@ export async function adminApi<T>(
     return await requestAdmin<T>(path, init);
   } finally {
     // Even failed mutations can partially apply server changes.
-    await invalidateAdminData();
+    await invalidateAdminData(path);
   }
 }
 
 async function requestAdmin<T>(path: string, init: RequestInit): Promise<T> {
-  const response = await fetch(`${base}/admin/user-management${path}`, {
+  const endpoint = path === '/apps' || path.startsWith('/apps/') ? `/admin${path}` : `/admin/user-management${path}`;
+  const response = await fetch(`${base}${endpoint}`, {
     ...init,
     credentials: "include",
     cache: "no-store",
