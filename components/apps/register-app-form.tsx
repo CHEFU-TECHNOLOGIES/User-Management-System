@@ -19,7 +19,8 @@ export function RegisterAppForm({
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
     const [name, setName] = useState("");
-    const [customAppId, setCustomAppId] = useState<string | null>(null);
+    const [appId, setAppId] = useState("");
+    const [platform, setPlatform] = useState("web");
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -28,7 +29,7 @@ export function RegisterAppForm({
             appId: String(data.get("appId")).trim(),
             owner: String(data.get("owner")).trim(),
             clientType: "public",
-            origins: splitLines(data.get("origins")),
+            origins: platform === "web" ? splitLines(data.get("origins")) : [],
             redirectUris: splitLines(data.get("callbacks")),
             allowedScopes: ["openid", "profile", "email"],
             status: data.has("activate") ? "approved" : "pending",
@@ -60,6 +61,11 @@ export function RegisterAppForm({
                             name="name"
                             value={name}
                             onChange={(event) => setName(event.target.value)}
+                            onBlur={(event) =>
+                                setAppId(
+                                    applicationId(event.currentTarget.value),
+                                )
+                            }
                             required
                             maxLength={100}
                             placeholder="My new app"
@@ -69,19 +75,13 @@ export function RegisterAppForm({
                         Application ID
                         <input
                             name="appId"
-                            value={customAppId ?? applicationId(name)}
-                            onChange={(event) =>
-                                setCustomAppId(event.target.value)
-                            }
+                            value={appId}
+                            onChange={(event) => setAppId(event.target.value)}
                             required
                             pattern="[a-z][a-z0-9-]{1,63}"
                             maxLength={64}
                             placeholder="my-new-app"
                         />
-                        <small>
-                            Generated from the application name. You can edit
-                            it. Used as the app parameter during sign-in.
-                        </small>
                     </label>
                     <label className="field-label">
                         Owner email
@@ -93,20 +93,31 @@ export function RegisterAppForm({
                             maxLength={254}
                         />
                     </label>
-                    <label className="field-label app-form-wide">
-                        Web origins
-                        <textarea
-                            name="origins"
-                            rows={3}
-                            placeholder={
-                                "https://my-new-app.example.com\nhttp://localhost:3000"
-                            }
-                        />
-                        <small>
-                            One exact origin per line. Native-only apps can
-                            leave this empty.
-                        </small>
+                    <label className="field-label">
+                        App platform
+                        <select
+                            name="platform"
+                            value={platform}
+                            onChange={(event) => setPlatform(event.target.value)}
+                        >
+                            <option value="web">Web app</option>
+                            <option value="native">Native app</option>
+                        </select>
                     </label>
+                    {platform === "web" && (
+                        <label className="field-label app-form-wide">
+                            Web origins
+                            <textarea
+                                name="origins"
+                                required
+                                rows={3}
+                                placeholder={
+                                    "https://my-new-app.example.com\nhttp://localhost:3000"
+                                }
+                            />
+                            <small>One exact origin per line.</small>
+                        </label>
+                    )}
                     <label className="field-label app-form-wide">
                         Callback URLs
                         <textarea
